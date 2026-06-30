@@ -1,37 +1,96 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
+
 const services = [
-  { icon: "📱", title: "Mobile Apps Design" },
-  { icon: "🖥️", title: "UI/UX Design" },
-  { icon: "🌐", title: "Website Design" },
-  { icon: "{}", title: "Web Development" },
-  { icon: "✏️", title: "Brand Identity" },
-  { icon: "🖐️", title: "Interaction Design" },
+  { icon: "📱", title: "Mobile Apps Design", desc: "Beautiful, intuitive mobile interfaces that users love and businesses trust." },
+  { icon: "🖥️", title: "UI/UX Design", desc: "User-centered designs that convert visitors into loyal customers." },
+  { icon: "🌐", title: "Website Design", desc: "Stunning, responsive websites built for performance and impact." },
+  { icon: "{}", title: "Web Development", desc: "Clean, scalable code with modern frameworks for fast, reliable sites." },
+  { icon: "✏️", title: "Brand Identity", desc: "Logos and visual identities that make your brand unforgettable." },
+  { icon: "🎬", title: "Video Editing", desc: "Cinematic edits and motion graphics that captivate your audience." },
 ];
 
 export default function Services() {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.2 });
+    if (sectionRef.current) obs.observe(sectionRef.current);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <section id="services" style={{ padding: "100px 24px", background: "#f8f8f8" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 32, marginBottom: 60 }}>
+    <section id="services" ref={sectionRef} style={{ padding: "120px 32px", background: "#f7f7f7", position: "relative", overflow: "hidden" }}>
+      {/* Background text */}
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: "clamp(80px,12vw,180px)", fontWeight: 900, color: "rgba(0,0,0,0.025)", whiteSpace: "nowrap", pointerEvents: "none", letterSpacing: 10, zIndex: 0 }}>
+        SERVICES
+      </div>
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 32, marginBottom: 72, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(30px)", transition: "all 0.8s ease" }}>
           <div>
-            <div style={{ color: "#888", fontSize: 13, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Services</div>
-            <div style={{ width: 40, height: 2, background: "#E8192C", marginBottom: 20 }}></div>
-            <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, lineHeight: 1.2, maxWidth: 360 }}>
-              Unique Ideas for Your Business
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 2, background: "#E8192C" }}></div>
+              <span style={{ color: "#E8192C", fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Services</span>
+            </div>
+            <h2 style={{ fontSize: "clamp(32px, 4.5vw, 52px)", fontWeight: 900, lineHeight: 1.15 }}>
+              Unique Ideas for<br />Your Business
             </h2>
           </div>
-          <p style={{ color: "#666", fontSize: 15, lineHeight: 1.8, maxWidth: 440 }}>
-            We Envision Design & Develop Digital Experience that create possibility in an ever changing world.
+          <p style={{ color: "#666", fontSize: 16, lineHeight: 1.85, maxWidth: 440 }}>
+            We Envision, Design & Develop Digital Experiences that create possibilities in an ever-changing world. Every solution is crafted with purpose.
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 1, background: "#e5e5e5" }}>
+        {/* Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
           {services.map((s, i) => (
-            <div key={i} style={{ background: "#fff", padding: "48px 32px", cursor: "pointer", transition: "all 0.2s" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "#E8192C"; (e.currentTarget as HTMLDivElement).style.color = "#fff"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "#fff"; (e.currentTarget as HTMLDivElement).style.color = "#111"; }}>
-              <div style={{ fontSize: 36, marginBottom: 20, color: "#E8192C" }}>{s.icon}</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>{s.title}</h3>
+            <div key={i}
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              style={{
+                background: hoveredIndex === i ? "#E8192C" : "#fff",
+                padding: "44px 36px",
+                borderRadius: 16,
+                cursor: "pointer",
+                transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
+                transform: visible ? (hoveredIndex === i ? "translateY(-12px) scale(1.02)" : "translateY(0)") : "translateY(40px)",
+                opacity: visible ? 1 : 0,
+                transitionDelay: `${i * 0.08}s`,
+                boxShadow: hoveredIndex === i ? "0 24px 60px rgba(232,25,44,0.35)" : "0 4px 24px rgba(0,0,0,0.06)",
+                position: "relative", overflow: "hidden",
+              }}>
+              {/* Icon */}
+              <div style={{ fontSize: 42, marginBottom: 20, transition: "transform 0.3s ease", transform: hoveredIndex === i ? "scale(1.2) rotate(5deg)" : "scale(1)" }}>
+                {s.icon}
+              </div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: hoveredIndex === i ? "#fff" : "#111", marginBottom: 12, transition: "color 0.3s" }}>
+                {s.title}
+              </h3>
+              <p style={{ color: hoveredIndex === i ? "rgba(255,255,255,0.85)" : "#888", fontSize: 14, lineHeight: 1.7, transition: "color 0.3s" }}>
+                {s.desc}
+              </p>
+              
+              {/* Arrow on hover */}
+              <div style={{
+                position: "absolute", bottom: 24, right: 24,
+                color: hoveredIndex === i ? "#fff" : "#E8192C",
+                fontSize: 20, fontWeight: 700,
+                opacity: hoveredIndex === i ? 1 : 0,
+                transform: hoveredIndex === i ? "translateX(0)" : "translateX(-10px)",
+                transition: "all 0.3s ease",
+              }}>→</div>
+
+              {/* Corner decoration */}
+              <div style={{
+                position: "absolute", top: -20, right: -20, width: 80, height: 80,
+                borderRadius: "50%",
+                background: hoveredIndex === i ? "rgba(255,255,255,0.1)" : "rgba(232,25,44,0.05)",
+                transition: "all 0.4s",
+              }}></div>
             </div>
           ))}
         </div>
