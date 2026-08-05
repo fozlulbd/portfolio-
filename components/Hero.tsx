@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-const roles = ["Graphic Designer", "Web Developer", "Video Editor", "Brand Specialist", "UI/UX Designer"];
+const roles = ["Graphic Designer", "Web Developer", "Video Editor", "Brand Specialist", "Softweare Engineer", "UI/UX Designer"];
 
 export default function Hero() {
   const [roleIndex, setRoleIndex] = useState(0);
@@ -9,6 +9,38 @@ export default function Hero() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [visible, setVisible] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 3D tilt state for the profile card
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
+  const [hovering, setHovering] = useState(false);
+  const tiltRef = useRef<HTMLDivElement>(null);
+
+  const handleTiltMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = tiltRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    const ry = (px - 0.5) * 26; // rotateY
+    const rx = (0.5 - py) * 18; // rotateX
+    setTilt({ rx, ry });
+  };
+  const handleTiltEnter = () => setHovering(true);
+  const handleTiltLeave = () => {
+    setHovering(false);
+    setTilt({ rx: 0, ry: 0 });
+  };
+
+  // Stage transform: JS-controlled tilt while hovering, CSS idle-float animation otherwise
+  const stageStyle: React.CSSProperties = hovering
+    ? {
+        transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
+        transition: "transform 0.1s ease-out",
+        animation: "none",
+      }
+    : {
+        animation: "heroIdleFloat 7s ease-in-out infinite",
+        transition: "transform 0.6s cubic-bezier(0.16,1,0.3,1)",
+      };
 
   // Typewriter effect
   useEffect(() => {
@@ -155,8 +187,8 @@ export default function Hero() {
               <div style={{ color: "#555", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 14, fontWeight: 600 }}>FIND WITH ME</div>
               <div style={{ display: "flex", gap: 12 }}>
                 {[
-                  { href: "https://twitter.com", label: "𝕏", title: "Twitter" },
-                  { href: "https://instagram.com", label: "◎", title: "Instagram" },
+                  { href: "https://twitter.com/fozlulbd", label: "𝕏", title: "Twitter" },
+                  { href: "https://facebook.com/fozlulbdx", label: "f", title: "Instagram" },
                   { href: "https://wa.me/8801939828993", label: "⬡", title: "WhatsApp" },
                 ].map(s => (
                   <a key={s.href} href={s.href} target="_blank" rel="noopener noreferrer" title={s.title}
@@ -186,53 +218,102 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* RIGHT - Profile Image */}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", minWidth: 280, opacity: visible ? 1 : 0, transform: visible ? "translateX(0)" : "translateX(40px)", transition: "all 1.2s ease" }}>
-          <div style={{ position: "relative" }}>
-            {/* Rotating border */}
-            <div style={{
-              position: "absolute", inset: -3,
-              borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-              background: "conic-gradient(from 0deg, #E8192C, transparent, #E8192C, transparent)",
-              animation: "gradientShift 4s linear infinite",
-              zIndex: 0,
-            }}></div>
-            
-            {/* Profile card */}
-            <div style={{
-              width: 340, height: 420,
-              borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-              overflow: "hidden",
-              background: "linear-gradient(135deg, #1a1a1a, #222)",
-              border: "3px solid #1a1a1a",
-              position: "relative", zIndex: 1,
-              animation: "float 5s ease-in-out infinite",
-              boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(232,25,44,0.15)",
-            }}>
-              <img src="/profile.jpg" alt="FozlulHoque" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} />
-            </div>
+        {/* RIGHT - Profile Image (fixed size + unique 3D tilt/parallax + orbit particles) */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            minWidth: 280,
+            perspective: 1400,
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateX(0) rotateY(0deg) scale(1)" : "translateX(50px) rotateY(-22deg) scale(0.88)",
+            transition: "all 1.4s cubic-bezier(0.16,1,0.3,1)",
+          }}
+        >
+          <div
+            ref={tiltRef}
+            onMouseMove={handleTiltMove}
+            onMouseEnter={handleTiltEnter}
+            onMouseLeave={handleTiltLeave}
+            style={{
+              position: "relative",
+              width: "clamp(340px, 42vw, 600px)",
+              perspective: 1600,
+            }}
+          >
+            {/* 3D stage — JS tilt on hover, gentle auto-rotation when idle */}
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                aspectRatio: "0.8",
+                transformStyle: "preserve-3d",
+                ...stageStyle,
+              }}
+            >
+              {/* Orbiting glow particles — sit behind, in 3D space */}
+              <div style={{ position: "absolute", inset: -50, transform: "translateZ(10px)", zIndex: 0, pointerEvents: "none" }}>
+                <div style={{ position: "absolute", inset: 0, animation: "heroOrbit 9s linear infinite" }}>
+                  <div style={{ position: "absolute", top: 0, left: "50%", width: 10, height: 10, marginLeft: -5, borderRadius: "50%", background: "#E8192C", boxShadow: "0 0 16px 5px rgba(232,25,44,0.55)" }}></div>
+                </div>
+                <div style={{ position: "absolute", inset: 30, animation: "heroOrbitReverse 13s linear infinite" }}>
+                  <div style={{ position: "absolute", bottom: 0, left: "28%", width: 7, height: 7, marginLeft: -3.5, borderRadius: "50%", background: "#ff6b6b", boxShadow: "0 0 12px 4px rgba(255,107,107,0.5)" }}></div>
+                </div>
+                <div style={{ position: "absolute", inset: -20, animation: "heroOrbit 17s linear infinite" }}>
+                  <div style={{ position: "absolute", top: "55%", right: 0, width: 6, height: 6, marginTop: -3, borderRadius: "50%", background: "#E8192C", boxShadow: "0 0 10px 3px rgba(232,25,44,0.45)" }}></div>
+                </div>
+              </div>
 
-            {/* Floating stat cards */}
-            <div style={{
-              position: "absolute", top: 20, left: -60,
-              background: "rgba(13,13,13,0.95)", backdropFilter: "blur(20px)",
-              border: "1px solid rgba(232,25,44,0.2)", borderRadius: 12,
-              padding: "12px 18px", animation: "float 4s ease-in-out infinite",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            }}>
-              <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>2k+</div>
-              <div style={{ color: "#888", fontSize: 11, letterSpacing: 1 }}>Jobs Done</div>
-            </div>
+              {/* Rotating gradient glow — sits behind in 3D space */}
+              <div style={{
+                position: "absolute", inset: -20,
+                borderRadius: 40,
+                background: "conic-gradient(from 0deg, #E8192C, transparent, #E8192C, transparent)",
+                animation: "gradientShift 4s linear infinite",
+                transform: "translateZ(-90px)",
+                zIndex: 0,
+              }}></div>
 
-            <div style={{
-              position: "absolute", bottom: 40, right: -50,
-              background: "rgba(13,13,13,0.95)", backdropFilter: "blur(20px)",
-              border: "1px solid rgba(232,25,44,0.2)", borderRadius: 12,
-              padding: "12px 18px", animation: "float 5s ease-in-out infinite reverse",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            }}>
-              <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>753</div>
-              <div style={{ color: "#888", fontSize: 11, letterSpacing: 1 }}>Happy Clients</div>
+              {/* Profile card — the base plane */}
+              <div style={{
+                position: "absolute", inset: 0,
+                borderRadius: 28,
+                overflow: "hidden",
+                background: "linear-gradient(135deg, #1a1a1a, #222)",
+                border: "3px solid #1a1a1a",
+                zIndex: 1,
+                boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(232,25,44,0.15)",
+              }}>
+                <img src="/profile.jpg" alt="FozlulHoque" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+                {/* glass sheen */}
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(255,255,255,0.05), transparent 45%)", pointerEvents: "none" }}></div>
+              </div>
+
+              {/* Floating stat card — popped forward in Z */}
+              <div style={{ position: "absolute", top: 24, left: -70, transform: "translateZ(100px)", zIndex: 2 }}>
+                <div style={{
+                  background: "rgba(13,13,13,0.95)", backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(232,25,44,0.2)", borderRadius: 12,
+                  padding: "12px 18px", animation: "float 4s ease-in-out infinite",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                }}>
+                  <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>200</div>
+                  <div style={{ color: "#888", fontSize: 11, letterSpacing: 1 }}>Jobs Done</div>
+                </div>
+              </div>
+
+              <div style={{ position: "absolute", bottom: 50, right: -70, transform: "translateZ(100px)", zIndex: 2 }}>
+                <div style={{
+                  background: "rgba(13,13,13,0.95)", backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(232,25,44,0.2)", borderRadius: 12,
+                  padding: "12px 18px", animation: "float 5s ease-in-out infinite reverse",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                }}>
+                  <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>753</div>
+                  <div style={{ color: "#888", fontSize: 11, letterSpacing: 1 }}>Happy Clients</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -245,6 +326,27 @@ export default function Hero() {
           <div style={{ width: 4, height: 8, background: "#E8192C", borderRadius: 2, animation: "scrollIndicator 1.5s ease-in-out infinite" }}></div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes heroIdleFloat {
+          0%, 100% { transform: rotateX(0deg) rotateY(0deg) translateY(0px); }
+          25% { transform: rotateX(4deg) rotateY(-7deg) translateY(-8px); }
+          50% { transform: rotateX(-3deg) rotateY(6deg) translateY(0px); }
+          75% { transform: rotateX(3deg) rotateY(5deg) translateY(8px); }
+        }
+        @keyframes heroOrbit {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes heroOrbitReverse {
+          to { transform: rotate(-360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="heroIdleFloat"],
+          [style*="heroOrbit"] {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }

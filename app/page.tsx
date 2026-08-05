@@ -5,8 +5,8 @@ import About from "@/components/About";
 import Projects from "@/components/Projects";
 import Testimonials from "@/components/Testimonials";
 import Pricing from "@/components/Pricing";
-import Clients from "@/components/Clients";
 import Footer from "@/components/Footer";
+import ChatWidget from "@/components/ChatWidget";
 
 export default function Home() {
   return (
@@ -19,9 +19,9 @@ export default function Home() {
         <Projects />
         <Testimonials />
         <Pricing />
-        <Clients />
       </main>
       <Footer />
+      <ChatWidget pageSource="home" />
     </>
   );
 }

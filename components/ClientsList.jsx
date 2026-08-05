@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@/utils/supabase/client'
 
 const STATUS_COLORS = {
   active: { bg: '#e8f5e9', text: '#2e7d32' },
@@ -10,6 +10,7 @@ const STATUS_COLORS = {
 }
 
 export default function ClientsList({ statusFilter, title }) {
+  const supabase = createClient()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -38,8 +39,8 @@ export default function ClientsList({ statusFilter, title }) {
   }
 
   const filtered = clients.filter(c =>
-    (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.email || '').toLowerCase().includes(search.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.email.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -105,7 +106,7 @@ export default function ClientsList({ statusFilter, title }) {
                         <option value="completed">Completed</option>
                       </select>
                     </td>
-                    <td style={{ padding: 10, fontSize: 12, color: '#999' }}>{c.source || 'manual'}</td>
+                    <td style={{ padding: 10, fontSize: 12, color: '#999' }}>{c.source}</td>
                     <td style={{ padding: 10 }}>
                       <button onClick={() => deleteClient(c.id)} style={{
                         background: '#d32f2f', color: '#fff', border: 'none',
