@@ -9,8 +9,8 @@ const STATUS_COLORS = {
   pending: { bg: '#fff3e0', text: '#e65100' },
 }
 
-export default function ClientsList({ statusFilter, title }) {
-  const [clients, setClients] = useState([])
+export default function ClientsList({ statusFilter, title }: { statusFilter?: string, title: string }) {
+ const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -24,8 +24,7 @@ export default function ClientsList({ statusFilter, title }) {
   }
 
   useEffect(() => { loadClients() }, [statusFilter])
-
-  const updateStatus = async (id, status) => {
+const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('clients').update({ status }).eq('id', id)
     if (error) alert('Update failed: ' + error.message)
     loadClients()
