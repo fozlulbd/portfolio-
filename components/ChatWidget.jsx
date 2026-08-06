@@ -214,22 +214,22 @@ export default function ChatWidget({ pageSource = 'home' }) {
               )}
 
               <input
-                placeholder="আপনার নাম" required value={form.firstName}
+                placeholder="Your Name" required value={form.firstName}
                 onChange={e => setForm({ ...form, firstName: e.target.value })}
                 style={{ padding: 10, borderRadius: 6, border: '1px solid #333', background: '#0d0d0d', color: '#fff', fontSize: 13 }}
               />
               <input
-                type="email" placeholder="ইমেইল" required value={form.email}
+                type="email" placeholder="Email" required value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
                 style={{ padding: 10, borderRadius: 6, border: '1px solid #333', background: '#0d0d0d', color: '#fff', fontSize: 13 }}
               />
               <input
-                placeholder="ঠিকানা (অপশনাল)" value={form.address}
+                placeholder="Address (Optional)" value={form.address}
                 onChange={e => setForm({ ...form, address: e.target.value })}
                 style={{ padding: 10, borderRadius: 6, border: '1px solid #333', background: '#0d0d0d', color: '#fff', fontSize: 13 }}
               />
               <textarea
-                placeholder="কী জানতে চান লিখুন..." required value={form.message}
+                placeholder="What would you like to know?" required value={form.message}
                 onChange={e => setForm({ ...form, message: e.target.value })}
                 style={{ padding: 10, borderRadius: 6, border: '1px solid #333', background: '#0d0d0d', color: '#fff', fontSize: 13, minHeight: 60 }}
               />
