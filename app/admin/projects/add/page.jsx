@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -30,7 +30,23 @@ const EMPTY_FORM = {
   github_url: "", figma_url: "", dribbble_url: "",
 };
 
+// Default export: wraps the actual page content in a Suspense boundary,
+// because useSearchParams() requires one during static generation.
 export default function AddProjectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <AddProjectPageInner />
+    </Suspense>
+  );
+}
+
+function AddProjectPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit"); // <-- null if adding new, project id if editing

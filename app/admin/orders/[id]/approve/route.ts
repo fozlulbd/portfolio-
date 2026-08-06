@@ -97,6 +97,6 @@ export async function POST(
 
     return NextResponse.json({ success: true, downloadUrl: signed.signedUrl });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Approval failed" }, { status: 500 });
-  }
+  return NextResponse.json({ error: err.message || "Approval failed" }, { status: 500 });
+}
 }
