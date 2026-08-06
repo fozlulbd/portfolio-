@@ -9,10 +9,10 @@ const LINK_EXPIRY_SECONDS = 60 * 60 * 48; // 48 hours
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     // 1. Load the order + its product
     const { data: order, error: orderError } = await supabaseAdmin

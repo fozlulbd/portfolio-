@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/client'
+import { supabase } from '@/lib/supabaseClient'
 
 const STATUS_COLORS = {
   active: { bg: '#e8f5e9', text: '#2e7d32' },
@@ -10,7 +10,6 @@ const STATUS_COLORS = {
 }
 
 export default function ClientsList({ statusFilter, title }) {
-  const supabase = createClient()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
