@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
+type ClientStatus = 'active' | 'completed' | 'pending';
+
 const STATUS_COLORS = {
   active: { bg: '#e8f5e9', text: '#2e7d32' },
   completed: { bg: '#e3f2fd', text: '#1976d2' },
@@ -10,7 +12,7 @@ const STATUS_COLORS = {
 }
 
 export default function ClientsList({ statusFilter, title }: { statusFilter?: string, title: string }) {
- const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -24,13 +26,14 @@ export default function ClientsList({ statusFilter, title }: { statusFilter?: st
   }
 
   useEffect(() => { loadClients() }, [statusFilter])
-const updateStatus = async (id: string, status: string) => {
+
+  const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from('clients').update({ status }).eq('id', id)
     if (error) alert('Update failed: ' + error.message)
     loadClients()
   }
 
-  const deleteClient = async (id) => {
+  const deleteClient = async (id: string) => {
     if (!confirm('এই client ডিলিট করবেন?')) return
     await supabase.from('clients').delete().eq('id', id)
     loadClients()
@@ -79,7 +82,7 @@ const updateStatus = async (id: string, status: string) => {
             </thead>
             <tbody>
               {filtered.map(c => {
-                const color = STATUS_COLORS[c.status] || STATUS_COLORS.pending
+                const color = STATUS_COLORS[c.status as ClientStatus] || STATUS_COLORS.pending
                 return (
                   <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: 10, fontSize: 13 }}>
