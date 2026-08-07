@@ -31,12 +31,12 @@ export default function Footer() {
         setEmail("");
         setTimeout(() => setSent(false), 3000);
       } else if (error.code === "23505") {
-        alert("এই ইমেইল দিয়ে আগেই subscribe করা আছে।");
+        alert("This email is already subscribed.");
       } else {
-        alert("কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন।");
+        alert("Something went wrong, please try again.");
       }
     } catch {
-      alert("কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন।");
+      alert("Something went wrong, please try again.");
     }
     setSubscribing(false);
   };
