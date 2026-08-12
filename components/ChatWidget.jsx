@@ -6,7 +6,6 @@ import { detectDevice, detectLocation } from './visitorInfo'
 const FALLBACK_REPLY = "Thanks for reaching out! We'll get back to you shortly (usually within 24 hours). 😊"
 const GREETING = "Hello! 👋 Welcome to SEVENXP! I'm Zara, your AI Assistant. Have a question or need help? Just fill out the short form below, and I'll be here to assist you."
 
-// Update these to match your real numbers / email if they ever change.
 const WHATSAPP_URL =
   'https://api.whatsapp.com/send/?phone=8801939828993&text=Hi%21+I+want+to+discuss+a+project+with+SevenXP.+Can+we+talk%3F&type=phone_number&app_absent=0'
 const EMAIL_ADDRESS = 'fozlulhoqueinfo@gmail.com'
@@ -18,6 +17,19 @@ function getSessionId() {
     localStorage.setItem('sevenxp_chat_session', id)
   }
   return id
+}
+
+// Screen-size detector — inline styles can't use @media queries, so the
+// widget's width/height are switched in JS based on viewport size.
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= breakpoint)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [breakpoint])
+  return isMobile
 }
 
 async function getAIReply(message, name) {
@@ -34,11 +46,9 @@ async function getAIReply(message, name) {
   }
 }
 
-// Small pair of quick-contact buttons shown under AI replies.
-// WhatsApp opens a pre-filled chat, Email opens the visitor's default mail app.
 function ContactButtons() {
   return (
-    <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 6 }}>
+    <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 6, flexWrap: 'wrap' }}>
       <a
         href={WHATSAPP_URL}
         target="_blank"
@@ -80,6 +90,7 @@ export default function ChatWidget({ pageSource = 'home' }) {
   const [aiTyping, setAiTyping] = useState(false)
   const bottomRef = useRef(null)
   const sessionId = useRef(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     sessionId.current = getSessionId()
@@ -216,17 +227,30 @@ export default function ChatWidget({ pageSource = 'home' }) {
   )
 
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1000, fontFamily: 'inherit' }}>
+    <div
+      style={{
+        position: 'fixed',
+        bottom: isMobile ? 16 : 24,
+        right: isMobile ? 16 : 24,
+        left: isMobile && open ? 16 : 'auto',
+        zIndex: 1000,
+        fontFamily: 'inherit',
+      }}
+    >
       {open ? (
         <div style={{
-          width: 320, height: 460, background: '#161616', borderRadius: 14,
+          width: isMobile ? '100%' : 320,
+          maxWidth: isMobile ? 380 : 320,
+          height: isMobile ? 'min(72vh, 460px)' : 460,
+          background: '#161616', borderRadius: 14,
           boxShadow: '0 8px 30px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
-          overflow: 'hidden', border: '1px solid #2a2a2a'
+          overflow: 'hidden', border: '1px solid #2a2a2a',
+          marginLeft: isMobile ? 'auto' : 0,
         }}>
           {/* Header */}
           <div style={{
             background: '#d32f2f', color: '#fff', padding: '12px 16px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Avatar />
@@ -235,7 +259,7 @@ export default function ChatWidget({ pageSource = 'home' }) {
                 <div style={{ fontSize: 11, opacity: 0.85 }}>SEVENXP Assistant</div>
               </div>
             </div>
-            <span onClick={() => setOpen(false)} style={{ cursor: 'pointer', fontSize: 18 }}>✕</span>
+            <span onClick={() => setOpen(false)} style={{ cursor: 'pointer', fontSize: 18, padding: 4 }}>✕</span>
           </div>
 
           {formStep ? (
@@ -315,13 +339,13 @@ export default function ChatWidget({ pageSource = 'home' }) {
                 <div ref={bottomRef} />
               </div>
 
-              <form onSubmit={sendMessage} style={{ display: 'flex', borderTop: '1px solid #2a2a2a' }}>
+              <form onSubmit={sendMessage} style={{ display: 'flex', borderTop: '1px solid #2a2a2a', flexShrink: 0 }}>
                 <input
                   placeholder="Write a message..." value={text}
                   onChange={e => setText(e.target.value)}
                   style={{
                     flex: 1, border: 'none', padding: 12, background: '#0d0d0d',
-                    color: '#fff', fontSize: 13, outline: 'none'
+                    color: '#fff', fontSize: 13, outline: 'none', minWidth: 0,
                   }}
                 />
                 <button type="submit" disabled={sending} style={{
@@ -336,7 +360,7 @@ export default function ChatWidget({ pageSource = 'home' }) {
         </div>
       ) : (
         <button onClick={() => setOpen(true)} style={{
-          width: 62, height: 62, borderRadius: '50%', border: '3px solid #d32f2f',
+          width: isMobile ? 54 : 62, height: isMobile ? 54 : 62, borderRadius: '50%', border: '3px solid #d32f2f',
           cursor: 'pointer', boxShadow: '0 4px 20px rgba(211,47,47,0.6)',
           overflow: 'hidden', padding: 0, background: '#161616'
         }}>
