@@ -42,6 +42,17 @@ function getLink(p: ProjectRow) {
   return p.live_demo_url || p.github_url || p.behance_url || p.dribbble_url || p.figma_url || "";
 }
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= breakpoint);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export default function Projects() {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
@@ -55,6 +66,7 @@ export default function Projects() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
+  const isMobile = useIsMobile();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -145,19 +157,19 @@ export default function Projects() {
   }
 
   return (
-    <section id="projects" ref={sectionRef} style={{ padding: "120px 32px", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
+    <section id="projects" ref={sectionRef} style={{ padding: isMobile ? "64px 20px" : "120px 32px", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: "clamp(60px,10vw,150px)", fontWeight: 900, color: "rgba(255,255,255,0.015)", whiteSpace: "nowrap", pointerEvents: "none", letterSpacing: 8 }}>PROJECTS</div>
 
       <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 56, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(30px)", transition: "all 0.8s ease" }}>
+        <div style={{ marginBottom: isMobile ? 32 : 56, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(30px)", transition: "all 0.8s ease" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
             <div style={{ width: 40, height: 2, background: "#E8192C" }} />
             <span style={{ color: "#E8192C", fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Recent Projects</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 24 }}>
-            <h2 style={{ fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>
+            <h2 style={{ fontSize: "clamp(26px, 6.5vw, 52px)", fontWeight: 900, color: "#fff", lineHeight: 1.15 }}>
               Bring to better disruptive<br />view of innovation.
             </h2>
             <div style={{ color: "#555", fontSize: 14 }}>
@@ -167,7 +179,7 @@ export default function Projects() {
         </div>
 
         {/* Filter tabs */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 48, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.2s" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: isMobile ? 32 : 48, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.2s" }}>
           {categoryTabs.map(cat => (
             <button key={cat.id} onClick={() => switchFilter(cat.id)}
               style={{
@@ -177,7 +189,7 @@ export default function Projects() {
                 padding: "9px 20px", borderRadius: 8, cursor: "pointer",
                 fontSize: 12, fontWeight: 600, letterSpacing: 0.5,
                 transition: "all 0.3s ease",
-                transform: filter === cat.id ? "translateY(-2px)" : "translateY(0)",
+                transform: filter === cat.id && !isMobile ? "translateY(-2px)" : "translateY(0)",
                 boxShadow: filter === cat.id ? "0 8px 24px rgba(232,25,44,0.3)" : "none",
                 display: "flex", alignItems: "center", gap: 6,
               }}>
@@ -187,11 +199,14 @@ export default function Projects() {
           ))}
         </div>
 
-        {/* Projects grid */}
+        {/* Projects grid — single column on mobile. The previous fixed
+            minmax(340px, 1fr) forced a card wider than many phone screens
+            (e.g. 375px viewport minus padding ≈ 311px available), which
+            caused horizontal overflow. */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: 20,
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
+          gap: isMobile ? 16 : 20,
           opacity: animating ? 0 : 1,
           transform: animating ? "translateY(20px)" : "translateY(0)",
           transition: "all 0.3s ease",
@@ -214,11 +229,11 @@ export default function Projects() {
                   overflow: "hidden",
                   cursor: "pointer",
                   position: "relative",
-                  height: 280,
+                  height: isMobile ? 240 : 280,
                   display: "flex", flexDirection: "column", justifyContent: "space-between",
-                  padding: 20,
+                  padding: isMobile ? 16 : 20,
                   transition: `clip-path 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.08}s, transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.3s, box-shadow 0.3s`,
-                  transform: hoveredId === p.id ? "translateY(-8px) scale(1.02)" : "translateY(0)",
+                  transform: hoveredId === p.id && !isMobile ? "translateY(-8px) scale(1.02)" : "translateY(0)",
                   clipPath: visible
                     ? "polygon(0 0, 100% 0, 100% 100%, 0 100%)"
                     : "polygon(0 0, 15% 0, -15% 100%, 0 100%)",
@@ -233,7 +248,7 @@ export default function Projects() {
                   <span style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "#fff", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  {p.technologies && p.technologies.slice(0, 3).map(tag => (
+                  {p.technologies && p.technologies.slice(0, isMobile ? 2 : 3).map(tag => (
                     <span key={tag} style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "#eee", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{tag}</span>
                   ))}
                   <span style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "#eee", padding: "6px 14px", borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{year}</span>
@@ -242,7 +257,7 @@ export default function Projects() {
                 {/* Bottom: title, description, circular arrow button */}
                 <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, marginBottom: 4, lineHeight: 1.25 }}>{p.title}</div>
+                    <div style={{ color: "#fff", fontWeight: 800, fontSize: isMobile ? 18 : 20, marginBottom: 4, lineHeight: 1.25 }}>{p.title}</div>
                     <div style={{ color: "#aaa", fontSize: 13, lineHeight: 1.4, marginBottom: 8 }}>{p.short_description}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ width: 6, height: 6, borderRadius: "50%", background: palette.accent }} />
@@ -269,11 +284,9 @@ export default function Projects() {
 
         {/* Load more */}
         {visibleCount < filtered.length && (
-          <div style={{ textAlign: "center", marginTop: 56, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.5s" }}>
+          <div style={{ textAlign: "center", marginTop: isMobile ? 40 : 56, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.5s" }}>
             <button onClick={() => setVisibleCount(v => v + 6)}
-              style={{ background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 40px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all 0.3s ease" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E8192C"; (e.currentTarget as HTMLButtonElement).style.color = "#E8192C"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}>
+              style={{ background: "rgba(255,255,255,0.04)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 40px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, transition: "all 0.3s ease", width: isMobile ? "100%" : "auto" }}>
               Load More Projects ({filtered.length - visibleCount} remaining)
             </button>
           </div>
@@ -285,7 +298,7 @@ export default function Projects() {
         <div onClick={() => setLightboxProject(null)}
           style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(16px)",
-            zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 32,
+            zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 16 : 32,
             animation: "sevenxpFadeIn 0.25s ease",
           }}>
           <div onClick={e => e.stopPropagation()}
@@ -294,18 +307,16 @@ export default function Projects() {
               animation: "sevenxpScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
             }}>
             {/* Branded header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "14px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 4, height: 22, background: "#E8192C", borderRadius: 2 }} />
-                <div>
-                  <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>{lightboxProject.title}</div>
-                  <div style={{ color: "#888", fontSize: 12.5, marginTop: 1 }}>{lightboxProject.short_description}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: isMobile ? "12px 14px" : "14px 20px", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                <div style={{ width: 4, height: 22, background: "#E8192C", borderRadius: 2, flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: "#fff", fontWeight: 800, fontSize: isMobile ? 15 : 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lightboxProject.title}</div>
+                  <div style={{ color: "#888", fontSize: isMobile ? 11 : 12.5, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lightboxProject.short_description}</div>
                 </div>
               </div>
               <button onClick={() => setLightboxProject(null)}
-                style={{ background: "rgba(232,25,44,0.12)", border: "1px solid rgba(232,25,44,0.3)", color: "#E8192C", width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 15, flexShrink: 0, transition: "all 0.2s" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#E8192C"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(232,25,44,0.12)"; (e.currentTarget as HTMLButtonElement).style.color = "#E8192C"; }}>✕</button>
+                style={{ background: "rgba(232,25,44,0.12)", border: "1px solid rgba(232,25,44,0.3)", color: "#E8192C", width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 15, flexShrink: 0, transition: "all 0.2s" }}>✕</button>
             </div>
 
             {lightboxImages.length > 0 && (
@@ -316,14 +327,13 @@ export default function Projects() {
                     onContextMenu={e => e.preventDefault()}
                     onDragStart={e => e.preventDefault()}
                     style={{ width: "100%", maxHeight: "62vh", objectFit: "contain", display: "block", userSelect: "none", WebkitUserSelect: "none", pointerEvents: "none" }} />
-                  {/* transparent overlay blocks right-click/drag/save on the image itself */}
                   <div onContextMenu={e => e.preventDefault()} style={{ position: "absolute", inset: 0 }} />
                 </div>
                 {lightboxImages.length > 1 && (
                   <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
                     {lightboxImages.map((img, idx) => (
                       <img key={idx} src={img} alt="" draggable={false} onContextMenu={e => e.preventDefault()} onClick={() => setLightboxIndex(idx)}
-                        style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, cursor: "pointer", opacity: idx === lightboxIndex ? 1 : 0.5, border: idx === lightboxIndex ? "2px solid #E8192C" : "2px solid transparent", userSelect: "none" }} />
+                        style={{ width: isMobile ? 48 : 64, height: isMobile ? 48 : 64, objectFit: "cover", borderRadius: 8, cursor: "pointer", opacity: idx === lightboxIndex ? 1 : 0.5, border: idx === lightboxIndex ? "2px solid #E8192C" : "2px solid transparent", userSelect: "none", flexShrink: 0 }} />
                     ))}
                   </div>
                 )}

@@ -160,11 +160,23 @@ const allPlans: Record<string, {
   ],
 };
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= breakpoint);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export default function Pricing() {
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
   const [activeCategory, setActiveCategory] = useState("design");
   const [animating, setAnimating] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold: 0.1 });
@@ -189,7 +201,7 @@ export default function Pricing() {
   };
 
   return (
-    <section id="pricing" ref={sectionRef} style={{ padding: "120px 32px", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
+    <section id="pricing" ref={sectionRef} style={{ padding: isMobile ? "64px 20px" : "120px 32px", background: "#0a0a0a", position: "relative", overflow: "hidden" }}>
       {/* BG */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: "clamp(60px,10vw,160px)", fontWeight: 900, color: "rgba(255,255,255,0.015)", whiteSpace: "nowrap", pointerEvents: "none" }}>PRICING</div>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(232,25,44,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
@@ -197,21 +209,21 @@ export default function Pricing() {
       <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 60, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(30px)", transition: "all 0.8s ease" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 40 : 60, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(30px)", transition: "all 0.8s ease" }}>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginBottom: 16 }}>
             <div style={{ width: 40, height: 2, background: "#E8192C" }} />
             <span style={{ color: "#E8192C", fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase" }}>Pricing</span>
             <div style={{ width: 40, height: 2, background: "#E8192C" }} />
           </div>
-          <h2 style={{ fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 900, color: "#fff", marginBottom: 16 }}>
+          <h2 style={{ fontSize: "clamp(26px, 6.5vw, 52px)", fontWeight: 900, color: "#fff", marginBottom: 16 }}>
             Stay chill and pick your plan
           </h2>
-          <p style={{ color: "#666", fontSize: 15, maxWidth: 500, margin: "0 auto 36px" }}>
+          <p style={{ color: "#666", fontSize: isMobile ? 14 : 15, maxWidth: 500, margin: "0 auto 36px" }}>
             Choose the package that fits your vision. Every plan includes professional communication and fast delivery.
           </p>
 
           {/* Ratings */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap", marginBottom: 48 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: isMobile ? 16 : 32, flexWrap: "wrap", marginBottom: isMobile ? 32 : 48 }}>
             {[{ label: "Communication", val: "4.3" }, { label: "Recommend", val: "5.0" }, { label: "On-time Delivery", val: "4.8" }].map((r, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex" }}>{"★★★★★".split("").map((s, j) => <span key={j} style={{ color: "#E8192C", fontSize: 14 }}>{s}</span>)}</div>
@@ -220,8 +232,22 @@ export default function Pricing() {
             ))}
           </div>
 
-          {/* Category Tabs */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          {/* Category Tabs — horizontally scrollable on mobile instead of
+              wrapping into many rows, which was eating a lot of vertical space */}
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              justifyContent: isMobile ? "flex-start" : "center",
+              flexWrap: isMobile ? "nowrap" : "wrap",
+              overflowX: isMobile ? "auto" : "visible",
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: isMobile ? 4 : 0,
+              margin: isMobile ? "0 -20px" : 0,
+              paddingLeft: isMobile ? 20 : 0,
+              paddingRight: isMobile ? 20 : 0,
+            }}
+          >
             {categories.map(cat => (
               <button key={cat.id} onClick={() => switchCategory(cat.id)}
                 style={{
@@ -230,8 +256,10 @@ export default function Pricing() {
                   border: `1px solid ${activeCategory === cat.id ? "#E8192C" : "rgba(255,255,255,0.08)"}`,
                   padding: "10px 22px", borderRadius: 8, cursor: "pointer",
                   fontSize: 13, fontWeight: 600, transition: "all 0.3s ease",
-                  transform: activeCategory === cat.id ? "translateY(-2px)" : "translateY(0)",
+                  transform: activeCategory === cat.id && !isMobile ? "translateY(-2px)" : "translateY(0)",
                   boxShadow: activeCategory === cat.id ? "0 8px 24px rgba(232,25,44,0.3)" : "none",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                 }}>
                 {cat.label}
               </button>
@@ -239,10 +267,13 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Plans */}
+        {/* Plans — single column on mobile. minmax(280px,1fr) was borderline
+            overflowing on very small phones (320px screens), so mobile now
+            uses a guaranteed-fluid 1fr instead. */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 24, alignItems: "center",
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: isMobile ? 20 : 24, alignItems: "center",
           opacity: animating ? 0 : 1,
           transform: animating ? "translateY(20px)" : "translateY(0)",
           transition: "all 0.3s ease",
@@ -251,10 +282,13 @@ export default function Pricing() {
             <div key={i}
               style={{
                 background: plan.popular ? "#0d0d0d" : "rgba(255,255,255,0.02)",
-                borderRadius: 20, padding: "40px 32px",
+                borderRadius: 20, padding: isMobile ? "32px 24px" : "40px 32px",
                 position: "relative", overflow: "hidden",
                 border: plan.popular ? "1px solid rgba(232,25,44,0.4)" : "1px solid rgba(255,255,255,0.06)",
-                transform: visible ? (plan.popular ? "scale(1.05) translateY(-8px)" : "scale(1)") : "scale(0.95)",
+                // The scale-up for the "popular" card looked great in a multi-column
+                // desktop grid, but on a single-column mobile layout it made the
+                // card visually spill past its neighbors — disabled on mobile.
+                transform: visible ? (plan.popular && !isMobile ? "scale(1.05) translateY(-8px)" : "scale(1)") : "scale(0.95)",
                 opacity: visible ? 1 : 0,
                 transition: `all 0.7s ease ${i * 0.1}s`,
                 boxShadow: plan.popular ? "0 24px 80px rgba(232,25,44,0.15)" : "none",
@@ -273,16 +307,16 @@ export default function Pricing() {
                 <span style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#888", padding: "3px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600 }}>🔄 {plan.revision}</span>
               </div>
 
-              <h3 style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>{plan.title}</h3>
-              <p style={{ color: "#666", fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>{plan.desc}</p>
+              <h3 style={{ color: "#fff", fontSize: isMobile ? 20 : 22, fontWeight: 800, marginBottom: 8 }}>{plan.title}</h3>
+              <p style={{ color: "#666", fontSize: 13, lineHeight: 1.6, marginBottom: isMobile ? 20 : 24 }}>{plan.desc}</p>
 
-              <div style={{ marginBottom: 28 }}>
+              <div style={{ marginBottom: isMobile ? 22 : 28 }}>
                 <span style={{ color: "#E8192C", fontSize: 18, fontWeight: 700 }}>$</span>
-                <span style={{ color: "#fff", fontSize: 52, fontWeight: 900, lineHeight: 1 }}>{plan.price}</span>
+                <span style={{ color: "#fff", fontSize: isMobile ? 42 : 52, fontWeight: 900, lineHeight: 1 }}>{plan.price}</span>
                 <span style={{ color: "#555", fontSize: 14 }}>/project</span>
               </div>
 
-              <ul style={{ listStyle: "none", marginBottom: 36 }}>
+              <ul style={{ listStyle: "none", marginBottom: isMobile ? 28 : 36, padding: 0 }}>
                 {plan.features.map((f, fi) => (
                   <li key={fi} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", color: "#bbb", fontSize: 14, borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                     <span style={{ color: "#E8192C", fontSize: 14, flexShrink: 0, fontWeight: 700 }}>✓</span> {f}
@@ -303,20 +337,7 @@ export default function Pricing() {
                   transition: "all 0.3s ease",
                   boxShadow: plan.popular ? "0 8px 30px rgba(232,25,44,0.4)" : "none",
                   position: "relative", overflow: "hidden",
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.background = "#E8192C";
-                  el.style.color = "#fff";
-                  el.style.transform = "translateY(-3px)";
-                  el.style.boxShadow = "0 15px 40px rgba(232,25,44,0.5)";
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.background = plan.popular ? "#E8192C" : "transparent";
-                  el.style.color = plan.popular ? "#fff" : "#E8192C";
-                  el.style.transform = "translateY(0)";
-                  el.style.boxShadow = plan.popular ? "0 8px 30px rgba(232,25,44,0.4)" : "none";
+                  boxSizing: "border-box",
                 }}>
                 <span style={{ fontSize: 18 }}>💬</span> Order on WhatsApp →
               </a>
@@ -325,15 +346,13 @@ export default function Pricing() {
         </div>
 
         {/* Bottom CTA */}
-        <div style={{ textAlign: "center", marginTop: 64, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.5s" }}>
+        <div style={{ textAlign: "center", marginTop: isMobile ? 48 : 64, opacity: visible ? 1 : 0, transition: "all 0.8s ease 0.5s" }}>
           <p style={{ color: "#555", fontSize: 14, marginBottom: 20 }}>
             Need a custom package? Let&apos;s talk directly!
           </p>
           <a href={`https://wa.me/${waNumber}?text=${encodeURIComponent("Hi! I need a custom package. Can we discuss?")}`}
             target="_blank" rel="noopener noreferrer"
-            style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "transparent", color: "#E8192C", border: "1px solid rgba(232,25,44,0.3)", padding: "12px 32px", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none", transition: "all 0.3s ease" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(232,25,44,0.1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#E8192C"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(232,25,44,0.3)"; }}>
+            style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "transparent", color: "#E8192C", border: "1px solid rgba(232,25,44,0.3)", padding: "12px 32px", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none", transition: "all 0.3s ease" }}>
             💬 Get Custom Quote →
           </a>
         </div>

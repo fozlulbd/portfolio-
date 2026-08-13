@@ -349,6 +349,7 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
           font-weight: 600;
           cursor: pointer;
           transition: all 0.25s ease;
+          flex-shrink: 0;
         }
         .tab:hover {
           border-color: rgba(224, 48, 63, 0.5);
@@ -483,6 +484,9 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
           width: 100%;
           max-width: 420px;
           position: relative;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-sizing: border-box;
         }
         .modal-close {
           position: absolute;
@@ -609,9 +613,80 @@ export default function ProductsGrid({ products }: { products: Product[] }) {
           margin: 0 auto 16px auto;
         }
 
+        /* ===== Mobile ===== */
         @media (max-width: 640px) {
+          .products-section {
+            padding: 64px 0;
+          }
+          .products-inner {
+            padding: 0 20px;
+          }
           .headline {
-            font-size: 32px;
+            font-size: 28px;
+            margin-bottom: 28px;
+          }
+          .eyebrow {
+            margin-bottom: 18px;
+          }
+          .category-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 6px;
+            margin: 0 -20px 28px;
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+          .category-tabs::-webkit-scrollbar {
+            display: none;
+          }
+          .tab {
+            padding: 8px 16px;
+            font-size: 12.5px;
+          }
+          .product-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          .product-thumb {
+            height: 100px;
+          }
+          .product-body {
+            padding: 12px;
+            gap: 4px;
+          }
+          .product-name {
+            font-size: 13.5px;
+            line-height: 1.3;
+          }
+          .product-category {
+            font-size: 9.5px;
+          }
+          .product-format {
+            font-size: 11px;
+          }
+          .product-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 10px;
+          }
+          .product-price {
+            font-size: 16px;
+          }
+          .buy-btn {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+          .modal {
+            padding: 24px 20px;
+          }
+          .modal-title {
+            font-size: 19px;
+          }
+          .modal-price {
+            font-size: 22px;
           }
         }
       `}</style>
