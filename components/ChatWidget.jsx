@@ -4,17 +4,17 @@ import { supabase } from '@/lib/supabaseClient'
 import { detectDevice, detectLocation } from './visitorInfo'
 
 const FALLBACK_REPLY = "Thanks for reaching out! We'll get back to you shortly (usually within 24 hours). 😊"
-const GREETING = "Hello! 👋 Welcome to SEVENXP! I'm Zara, your AI Assistant. Have a question or need help? Just fill out the short form below, and I'll be here to assist you."
+const GREETING = "Hello! 👋 Welcome to VENUZEN! I'm Zara, your AI Assistant. Have a question or need help? Just fill out the short form below, and I'll be here to assist you."
 
 const WHATSAPP_URL =
-  'https://api.whatsapp.com/send/?phone=8801939828993&text=Hi%21+I+want+to+discuss+a+project+with+SevenXP.+Can+we+talk%3F&type=phone_number&app_absent=0'
+  'https://api.whatsapp.com/send/?phone=8801939828993&text=Hi%21+I+want+to+discuss+a+project+with+VENUZEN.+Can+we+talk%3F&type=phone_number&app_absent=0'
 const EMAIL_ADDRESS = 'fozlulhoqueinfo@gmail.com'
 
 function getSessionId() {
-  let id = localStorage.getItem('sevenxp_chat_session')
+  let id = localStorage.getItem('venuzen_chat_session')
   if (!id) {
     id = crypto.randomUUID()
-    localStorage.setItem('sevenxp_chat_session', id)
+    localStorage.setItem('venuzen_chat_session', id)
   }
   return id
 }
@@ -94,7 +94,7 @@ export default function ChatWidget({ pageSource = 'home' }) {
 
   useEffect(() => {
     sessionId.current = getSessionId()
-    const savedProfile = localStorage.getItem('sevenxp_chat_profile')
+    const savedProfile = localStorage.getItem('venuzen_chat_profile')
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile))
       setFormStep(false)
@@ -256,7 +256,7 @@ export default function ChatWidget({ pageSource = 'home' }) {
               <Avatar />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>Zara</div>
-                <div style={{ fontSize: 11, opacity: 0.85 }}>SEVENXP Assistant</div>
+                <div style={{ fontSize: 11, opacity: 0.85 }}>VENUZENAssistant</div>
               </div>
             </div>
             <span onClick={() => setOpen(false)} style={{ cursor: 'pointer', fontSize: 18, padding: 4 }}>✕</span>

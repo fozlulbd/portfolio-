@@ -70,9 +70,13 @@ export default function Navbar() {
         }}>
 
           {/* Logo */}
-          <Link href="/#home" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 8, height: isMobile ? 26 : 32, background: "#E8192C", borderRadius: 2, marginRight: 4 }}></div>
-            <span style={{ color: "#fff", fontWeight: 900, fontSize: isMobile ? 18 : 22, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase" }}>SEVENXP</span>
+          <Link href="/#home" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+            <img
+              src="/logo.png"
+              alt="VENUZEN"
+              style={{ height: isMobile ? 48 : 60, width: "auto", display: "block" }}
+            />
+            <span style={{ color: "#fff", fontWeight: 900, fontSize: isMobile ? 18 : 24, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase" }}>VENUZEN</span>
           </Link>
 
           {/* Desktop Nav */}

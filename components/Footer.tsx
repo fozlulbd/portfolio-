@@ -128,7 +128,7 @@ export default function Footer() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                 <div style={{ width: 6, height: 28, background: "#E8192C", borderRadius: 2 }} />
-                <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: 3 }}>SEVENXP</span>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, letterSpacing: 3 }}>VENUZEN</span>
               </div>
               <p style={{ color: "#555", fontSize: 14, lineHeight: 1.8, marginBottom: 24, maxWidth: isMobile ? "100%" : 280 }}>
                 Premium creative digital services — Graphic Design, Web Development, Video Editing & Brand Identity. Let&apos;s build your dream brand.
@@ -235,7 +235,7 @@ export default function Footer() {
           {/* Bottom bar */}
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "24px 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div style={{ color: "#444", fontSize: isMobile ? 12 : 13, textAlign: isMobile ? "center" : "left", width: isMobile ? "100%" : "auto" }}>
-              © 2026 <span style={{ color: "#E8192C", fontWeight: 700 }}>SevenXP</span> · All Rights Reserved · Made with ❤️ by FozlulHoque
+              © 2026 <span style={{ color: "#E8192C", fontWeight: 700 }}>VENUZEN</span> · All Rights Reserved · Made with ❤️ by FozlulHoque
             </div>
             <div style={{ display: "flex", gap: 20, justifyContent: isMobile ? "center" : "flex-start", width: isMobile ? "100%" : "auto" }}>
               {["Privacy Policy", "Terms of Service", "Refund Policy"].map((t, i) => (

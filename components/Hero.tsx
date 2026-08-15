@@ -319,7 +319,7 @@ export default function Hero() {
           </div>
 
           <p style={{ color: "#888", fontSize: isMobile ? 14 : 16, lineHeight: 1.85, marginBottom: isMobile ? 28 : 40, maxWidth: 520 }}>
-            Creative digital specialist behind <strong style={{ color: "#fff" }}>SEVEN</strong> — delivering premium
+            Creative digital specialist behind <strong style={{ color: "#fff" }}>VENUZEN</strong> — delivering premium
             Graphic Design, modern Web Development, and cinematic Video Editing. I transform ideas into
             high-converting visuals that help brands{" "}
             <strong style={{ color: "#E8192C" }}>grow, sell & stand out.</strong>
