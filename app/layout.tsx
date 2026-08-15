@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 const siteUrl = "https://venuzen.com";
 
 export const metadata: Metadata = {
-<<<<<<< HEAD
   metadataBase: new URL(siteUrl),
   title: {
     default: "VENUZEN | FozlulHoque — Creative Digital Specialist",
@@ -76,11 +75,6 @@ export const metadata: Metadata = {
     shortcut: "/icon.png",
     apple: "/icon.png",
   },
-=======
-  title: "FozlulHoque | Venuzen — Creative Digital Specialist",
-  description: "Premium Graphic Design, Web Development & Video Editing. I transform ideas into high-converting visuals.",
-  keywords: ["graphic design", "web development", "video editing", "UI/UX", "branding"],
->>>>>>> 4c078351521ab55ca614f63a589d1397f27e72b7
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
