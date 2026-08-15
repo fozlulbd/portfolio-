@@ -3,7 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "FozlulHoque | SevenXP — Creative Digital Specialist",
+  title: "FozlulHoque | Venuzen — Creative Digital Specialist",
   description: "Premium Graphic Design, Web Development & Video Editing. I transform ideas into high-converting visuals.",
   keywords: ["graphic design", "web development", "video editing", "UI/UX", "branding"],
 };
