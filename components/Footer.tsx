@@ -81,7 +81,7 @@ export default function Footer() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: isMobile ? "stretch" : "flex-end", width: isMobile ? "100%" : "auto" }}>
-              <a href={waLink("Hi! I want to discuss a project with SevenXP. Can we talk?")}
+              <a href={waLink("Hi! I want to discuss a project with VENUZEN. Can we talk?")}
                 target="_blank" rel="noopener noreferrer"
                 style={{
                   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 12,
@@ -115,9 +115,6 @@ export default function Footer() {
           <div
             style={{
               display: "grid",
-              // Single column on mobile — the previous fixed "2fr 1fr 1fr 1.2fr"
-              // squeezed all 4 columns into the screen width regardless of size,
-              // which is unreadable on phones (CSS grid ignores flexWrap).
               gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr 1.2fr",
               gap: isMobile ? 40 : 60,
               marginBottom: isMobile ? 40 : 64,
@@ -149,7 +146,7 @@ export default function Footer() {
                 {[
                   { icon: "𝕏", href: "https://twitter.com/fozlulbd", title: "Twitter" },
                   { icon: "📷", href: "https://instagram.com", title: "Instagram" },
-                  { icon: "💬", href: "https://wa.me/8801939828993?text=Hi!%20I%20want%20to%20discuss%20a%20project%20with%20SevenXP.%20Can%20we%20talk%3F", title: "WhatsApp" },
+                  { icon: "💬", href: "https://wa.me/8801939828993?text=Hi!%20I%20want%20to%20discuss%20a%20project%20with%20VENUZEN.%20Can%20we%20talk%3F", title: "WhatsApp" },
                   { icon: "in", href: "https://linkedin.com", title: "LinkedIn" },
                 ].map((s, i) => (
                   <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" title={s.title}
@@ -238,10 +235,14 @@ export default function Footer() {
               © 2026 <span style={{ color: "#E8192C", fontWeight: 700 }}>VENUZEN</span> · All Rights Reserved · Made with ❤️ by FozlulHoque
             </div>
             <div style={{ display: "flex", gap: 20, justifyContent: isMobile ? "center" : "flex-start", width: isMobile ? "100%" : "auto" }}>
-              {["Privacy Policy", "Terms of Service", "Refund Policy"].map((t, i) => (
-                <a key={i} href="#"
+              {[
+                { label: "Privacy Policy", href: "/privacy-policy" },
+                { label: "Terms of Service", href: "/terms-of-service" },
+                { label: "Refund Policy", href: "/refund-policy" },
+              ].map((t, i) => (
+                <a key={i} href={t.href}
                   style={{ color: "#444", fontSize: 12, textDecoration: "none", transition: "color 0.3s" }}>
-                  {t}
+                  {t.label}
                 </a>
               ))}
             </div>
