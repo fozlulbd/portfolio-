@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 const roles = ["Graphic Designer", "Web Developer", "Video Editor", "Brand Specialist", "Software Engineer", "UI/UX Designer"];
 
@@ -92,71 +93,89 @@ export default function Hero() {
 
   // Particle canvas — fewer particles and no connecting-line calculations on
   // mobile, since that O(n^2) line-distance check is the most expensive part
-  // per frame and drains battery / drops frame rate on phones.
+  // per frame and drains battery / drops frame rate on phones. Also delayed
+  // until after the page has finished its initial load so it never competes
+  // with the hero image/text for the main thread during LCP/FCP.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const particleCount = isMobile ? 22 : 70;
-    const drawConnections = !isMobile;
-
-    const particles: { x: number; y: number; vx: number; vy: number; r: number; alpha: number }[] = [];
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35,
-        r: Math.random() * 1.6 + 0.4,
-        alpha: Math.random() * 0.4 + 0.1,
-      });
-    }
-
     let animId: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(232,25,44,${p.alpha})`;
-        ctx.fill();
-      });
-      if (drawConnections) {
-        particles.forEach((p1, i) => {
-          particles.slice(i + 1).forEach((p2) => {
-            const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-            if (dist < 130) {
-              ctx.beginPath();
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.strokeStyle = `rgba(232,25,44,${0.07 * (1 - dist / 130)})`;
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-            }
-          });
+    let cleanupResize: () => void = () => {};
+
+    const start = () => {
+      const resize = () => {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+      };
+      resize();
+      window.addEventListener("resize", resize);
+      cleanupResize = () => window.removeEventListener("resize", resize);
+
+      const particleCount = isMobile ? 16 : 70;
+      const drawConnections = !isMobile;
+
+      const particles: { x: number; y: number; vx: number; vy: number; r: number; alpha: number }[] = [];
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          r: Math.random() * 1.6 + 0.4,
+          alpha: Math.random() * 0.4 + 0.1,
         });
       }
-      animId = requestAnimationFrame(draw);
+
+      const draw = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(232,25,44,${p.alpha})`;
+          ctx.fill();
+        });
+        if (drawConnections) {
+          particles.forEach((p1, i) => {
+            particles.slice(i + 1).forEach((p2) => {
+              const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+              if (dist < 130) {
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgba(232,25,44,${0.07 * (1 - dist / 130)})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            });
+          });
+        }
+        animId = requestAnimationFrame(draw);
+      };
+      draw();
     };
-    draw();
+
+    // Wait for the browser to be idle (or fall back to a short timeout) so this
+    // purely decorative animation never delays the hero's first paint / LCP.
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void) => number };
+    const idleId = w.requestIdleCallback ? w.requestIdleCallback(start) : window.setTimeout(start, 200);
+
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
+      cleanupResize();
+      if (w.requestIdleCallback) {
+        (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId as number);
+      } else {
+        clearTimeout(idleId as number);
+      }
     };
   }, [isMobile]);
 
@@ -506,10 +525,18 @@ export default function Hero() {
                 backdropFilter: "blur(20px)",
               }}
             >
-              <img
+              {/* next/image: automatically serves a resized, compressed
+                  WebP/AVIF version and preloads it (priority) instead of the
+                  raw 260KB jpg — this is the LCP element on this page, so
+                  this single change is what moves the mobile score most. */}
+              <Image
                 src="/profile.jpg"
                 alt="FozlulHoque"
-                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
+                fill
+                priority
+                fetchPriority="high"
+                sizes="(max-width: 768px) 78vw, 560px"
+                style={{ objectFit: "cover", objectPosition: "top center" }}
               />
             </div>
 
