@@ -5,6 +5,15 @@ import BuyButton from "@/components/BuyButton";
 import ProductMedia from "@/components/ProductMedia";
 import ShareButton from "@/components/ShareButton";
 
+// ISR: rebuild a product page in the background at most once per hour after
+// it's first requested. Lower this if prices/stock change more often.
+export const revalidate = 3600;
+
+// Allow slugs that were NOT in generateStaticParams at build time (e.g. a
+// product added after the last deploy) to still render on first request
+// instead of 404-ing.
+export const dynamicParams = true;
+
 // Detects whether a media URL is an image, video, or audio file based on its extension.
 // Needed because the admin panel stores images, videos, and audio all in the same
 // `image_url` field, so related-product thumbnails can't assume it's always an image.
@@ -44,6 +53,26 @@ async function getRelatedProducts(category: string, excludeId: string) {
     return [];
   }
   return data || [];
+}
+
+// Tells Next.js which /product/[slug] pages to pre-render at build time,
+// so each product gets a real static page instead of being generated on
+// every visitor's first request.
+export async function generateStaticParams() {
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .select("slug")
+    .eq("status", "active")
+    .not("slug", "is", null);
+
+  if (error || !data) {
+    console.error("generateStaticParams error:", error?.message);
+    return [];
+  }
+
+  return data
+    .filter((row) => !!row.slug)
+    .map((row) => ({ slug: row.slug as string }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

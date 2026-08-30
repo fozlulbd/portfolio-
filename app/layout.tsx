@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { getSeoSchema } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
 
 const siteUrl = "https://venuzen.com";
 
@@ -77,7 +79,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Whatever JSON-LD schema you save under page path "/" in the admin
+  // Schema tab (e.g. Organization schema) gets fetched here and rendered
+  // on every page, since it lives in the root layout.
+  const homeSchemas = await getSeoSchema("/");
+
   return (
     <html lang="en">
       <head>
@@ -86,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body style={{ fontFamily: "'Inter', sans-serif" }}>
+        <JsonLd schemas={homeSchemas} />
         <Navbar />
         {children}
       </body>

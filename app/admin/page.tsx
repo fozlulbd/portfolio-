@@ -71,6 +71,30 @@ type MessageRow = {
   created_at: string;
 };
 
+type SeoMeta = {
+  id?: string;
+  page_slug: string;
+  title: string;
+  description: string;
+  keywords: string;
+  og_image: string;
+  canonical_url: string;
+  no_index: boolean;
+};
+
+type SeoRedirect = {
+  id?: string;
+  source: string;
+  destination: string;
+  permanent: boolean;
+};
+
+type SeoSchemaRow = {
+  id?: string;
+  page_slug: string;
+  schema_json: string;
+};
+
 const emptyClient = {
   name: "", email: "", phone: "", company: "", project: "", status: "active", notes: "",
 };
@@ -80,6 +104,18 @@ const emptyProduct: Product = {
   sales: 0, tag: "NEW", description: "", format: "",
   image_url: "", file_url: "", file_name: "", file_size: "",
   seo_title: "", seo_description: "", seo_keywords: "", status: "active",
+};
+
+const emptySeoMeta: SeoMeta = {
+  page_slug: "", title: "", description: "", keywords: "", og_image: "", canonical_url: "", no_index: false,
+};
+
+const emptyRedirect: SeoRedirect = {
+  source: "", destination: "", permanent: true,
+};
+
+const emptySchema: SeoSchemaRow = {
+  page_slug: "", schema_json: "",
 };
 
 const categories = [
@@ -205,6 +241,7 @@ const IMPLEMENTED_TABS = new Set([
   "dashboard", "products", "add", "orders",
   "projects-all", "projects-draft", "projects-published", "projects-featured", "projects-categories",
   "clients-all", "clients-add", "clients-active", "clients-completed", "clients-pending", "clients-messages",
+  "seo-meta", "seo-sitemap", "seo-redirects", "seo-schema",
 ]);
 
 export default function AdminPage() {
@@ -239,6 +276,28 @@ export default function AdminPage() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const imageRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ---- SEO: Meta Settings ----
+  const [seoMetaList, setSeoMetaList] = useState<SeoMeta[]>([]);
+  const [seoMetaLoading, setSeoMetaLoading] = useState(false);
+  const [seoMetaForm, setSeoMetaForm] = useState<SeoMeta>({ ...emptySeoMeta });
+  const [editSeoMetaId, setEditSeoMetaId] = useState<string | null>(null);
+  const [seoMetaDeleteConfirm, setSeoMetaDeleteConfirm] = useState<string | null>(null);
+
+  // ---- SEO: Redirects ----
+  const [redirectsList, setRedirectsList] = useState<SeoRedirect[]>([]);
+  const [redirectsLoading, setRedirectsLoading] = useState(false);
+  const [redirectForm, setRedirectForm] = useState<SeoRedirect>({ ...emptyRedirect });
+  const [editRedirectId, setEditRedirectId] = useState<string | null>(null);
+  const [redirectDeleteConfirm, setRedirectDeleteConfirm] = useState<string | null>(null);
+
+  // ---- SEO: Schema ----
+  const [schemaList, setSchemaList] = useState<SeoSchemaRow[]>([]);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaForm, setSchemaForm] = useState<SeoSchemaRow>({ ...emptySchema });
+  const [editSchemaId, setEditSchemaId] = useState<string | null>(null);
+  const [schemaDeleteConfirm, setSchemaDeleteConfirm] = useState<string | null>(null);
+  const [schemaJsonError, setSchemaJsonError] = useState<string | null>(null);
 
   const notify = (msg: string, type: "success"|"error"|"info" = "success") => {
     setNotification({ msg, type });
@@ -363,6 +422,134 @@ export default function AdminPage() {
     await fetchCategoriesList();
   };
 
+  // ---- SEO: Meta Settings handlers ----
+  const fetchSeoMetaList = useCallback(async () => {
+    setSeoMetaLoading(true);
+    const sb = await getSupabase();
+    const { data, error } = await sb.from("seo_meta").select("*").order("page_slug", { ascending: true });
+    if (error) notify("Failed to load meta settings: " + error.message, "error");
+    if (data) setSeoMetaList(data);
+    setSeoMetaLoading(false);
+  }, []);
+
+  const handleSaveSeoMeta = async () => {
+    if (!seoMetaForm.page_slug.trim()) return notify("Page path is required!", "error");
+    setSeoMetaLoading(true);
+    const sb = await getSupabase();
+    const payload = { ...seoMetaForm, page_slug: seoMetaForm.page_slug.trim() };
+    if (editSeoMetaId) {
+      const { error } = await sb.from("seo_meta").update(payload).eq("id", editSeoMetaId);
+      if (error) { notify("Update failed: " + error.message, "error"); setSeoMetaLoading(false); return; }
+      notify("Meta settings updated!");
+      setEditSeoMetaId(null);
+    } else {
+      const { error } = await sb.from("seo_meta").insert([payload]);
+      if (error) { notify("Save failed: " + error.message, "error"); setSeoMetaLoading(false); return; }
+      notify("Meta settings saved!");
+    }
+    setSeoMetaForm({ ...emptySeoMeta });
+    await fetchSeoMetaList();
+    setSeoMetaLoading(false);
+  };
+
+  const handleDeleteSeoMeta = async (id: string) => {
+    const sb = await getSupabase();
+    await sb.from("seo_meta").delete().eq("id", id);
+    setSeoMetaDeleteConfirm(null);
+    notify("Meta entry deleted.");
+    await fetchSeoMetaList();
+  };
+
+  // ---- SEO: Redirects handlers ----
+  const fetchRedirectsList = useCallback(async () => {
+    setRedirectsLoading(true);
+    const sb = await getSupabase();
+    const { data, error } = await sb.from("seo_redirects").select("*").order("source", { ascending: true });
+    if (error) notify("Failed to load redirects: " + error.message, "error");
+    if (data) setRedirectsList(data);
+    setRedirectsLoading(false);
+  }, []);
+
+  const handleSaveRedirect = async () => {
+    if (!redirectForm.source.trim() || !redirectForm.destination.trim()) {
+      return notify("Source and destination are required!", "error");
+    }
+    setRedirectsLoading(true);
+    const sb = await getSupabase();
+    const payload = {
+      ...redirectForm,
+      source: redirectForm.source.trim(),
+      destination: redirectForm.destination.trim(),
+    };
+    if (editRedirectId) {
+      const { error } = await sb.from("seo_redirects").update(payload).eq("id", editRedirectId);
+      if (error) { notify("Update failed: " + error.message, "error"); setRedirectsLoading(false); return; }
+      notify("Redirect updated!");
+      setEditRedirectId(null);
+    } else {
+      const { error } = await sb.from("seo_redirects").insert([payload]);
+      if (error) { notify("Save failed: " + error.message, "error"); setRedirectsLoading(false); return; }
+      notify("Redirect added!");
+    }
+    setRedirectForm({ ...emptyRedirect });
+    await fetchRedirectsList();
+    setRedirectsLoading(false);
+  };
+
+  const handleDeleteRedirect = async (id: string) => {
+    const sb = await getSupabase();
+    await sb.from("seo_redirects").delete().eq("id", id);
+    setRedirectDeleteConfirm(null);
+    notify("Redirect deleted.");
+    await fetchRedirectsList();
+  };
+
+  // ---- SEO: Schema handlers ----
+  const fetchSchemaList = useCallback(async () => {
+    setSchemaLoading(true);
+    const sb = await getSupabase();
+    const { data, error } = await sb.from("seo_schema").select("*").order("page_slug", { ascending: true });
+    if (error) notify("Failed to load schema: " + error.message, "error");
+    if (data) setSchemaList(data);
+    setSchemaLoading(false);
+  }, []);
+
+  const handleSaveSchema = async () => {
+    if (!schemaForm.page_slug.trim()) return notify("Page path is required!", "error");
+    if (!schemaForm.schema_json.trim()) return notify("Schema JSON is required!", "error");
+    try {
+      JSON.parse(schemaForm.schema_json);
+      setSchemaJsonError(null);
+    } catch {
+      setSchemaJsonError("Invalid JSON — please check the syntax.");
+      return notify("Schema JSON is not valid JSON!", "error");
+    }
+    setSchemaLoading(true);
+    const sb = await getSupabase();
+    const payload = { ...schemaForm, page_slug: schemaForm.page_slug.trim() };
+    if (editSchemaId) {
+      const { error } = await sb.from("seo_schema").update(payload).eq("id", editSchemaId);
+      if (error) { notify("Update failed: " + error.message, "error"); setSchemaLoading(false); return; }
+      notify("Schema updated!");
+      setEditSchemaId(null);
+    } else {
+      const { error } = await sb.from("seo_schema").insert([payload]);
+      if (error) { notify("Save failed: " + error.message, "error"); setSchemaLoading(false); return; }
+      notify("Schema saved!");
+    }
+    setSchemaForm({ ...emptySchema });
+    await fetchSchemaList();
+    setSchemaLoading(false);
+  };
+
+  const handleDeleteSchema = async (id: string) => {
+    const sb = await getSupabase();
+    await sb.from("seo_schema").delete().eq("id", id);
+    setSchemaDeleteConfirm(null);
+    notify("Schema deleted.");
+    await fetchSchemaList();
+  };
+
   useEffect(() => {
     if (loggedIn) { fetchProducts(); fetchOrders(); }
   }, [loggedIn, fetchProducts, fetchOrders]);
@@ -386,6 +573,18 @@ export default function AdminPage() {
   useEffect(() => {
     if (loggedIn && activeTab === "clients-messages") fetchMessagesList();
   }, [loggedIn, activeTab, fetchMessagesList]);
+
+  useEffect(() => {
+    if (loggedIn && activeTab === "seo-meta") fetchSeoMetaList();
+  }, [loggedIn, activeTab, fetchSeoMetaList]);
+
+  useEffect(() => {
+    if (loggedIn && activeTab === "seo-redirects") fetchRedirectsList();
+  }, [loggedIn, activeTab, fetchRedirectsList]);
+
+  useEffect(() => {
+    if (loggedIn && activeTab === "seo-schema") fetchSchemaList();
+  }, [loggedIn, activeTab, fetchSchemaList]);
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) { setLoggedIn(true); setLoginError(false); }
@@ -589,6 +788,9 @@ export default function AdminPage() {
     setActiveTab(sub.id);
     if (sub.id !== "add") { setEditId(null); setForm({ ...emptyProduct }); }
     if (sub.id !== "clients-add") { setEditClientId(null); setClientForm({ ...emptyClient }); }
+    if (sub.id !== "seo-meta") { setEditSeoMetaId(null); setSeoMetaForm({ ...emptySeoMeta }); }
+    if (sub.id !== "seo-redirects") { setEditRedirectId(null); setRedirectForm({ ...emptyRedirect }); }
+    if (sub.id !== "seo-schema") { setEditSchemaId(null); setSchemaForm({ ...emptySchema }); setSchemaJsonError(null); }
   };
 
   if (!loggedIn) return (
@@ -795,7 +997,7 @@ export default function AdminPage() {
                     {[{ label: "Price ($) *", key: "price" }, { label: "Old Price ($)", key: "old_price" }].map(f => (
                       <div key={f.key}>
                         <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>{f.label.toUpperCase()}</div>
-                        <input type="number" value={(form as Record<string, unknown>)[f.key] as number} onChange={e => setForm(p => ({ ...p, [f.key]: Number(e.target.value) }))}
+                       <input type="number" value={((form as Record<string, unknown>)[f.key] as number) ?? 0} onChange={e => setForm(p => ({ ...p, [f.key]: Number(e.target.value) }))}
                           style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }}
                         />
                       </div>
@@ -1285,6 +1487,287 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ================= SEO: META SETTINGS ================= */}
+        {activeTab === "seo-meta" && (
+          <div>
+            <h1 style={{ color: "#fff", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>Meta Settings 🔍</h1>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 24 }}>{seoMetaList.length} pages configured</div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 24, maxWidth: 640 }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
+                {editSeoMetaId ? "✏️ Edit Meta" : "➕ Add Page Meta"}
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>PAGE PATH *</div>
+                <input value={seoMetaForm.page_slug} onChange={e => setSeoMetaForm(p => ({ ...p, page_slug: e.target.value }))}
+                  placeholder="e.g. / or /product or /about"
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>TITLE</div>
+                <input value={seoMetaForm.title} onChange={e => setSeoMetaForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Page title for search engines"
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>DESCRIPTION</div>
+                <textarea value={seoMetaForm.description} onChange={e => setSeoMetaForm(p => ({ ...p, description: e.target.value }))} rows={3}
+                  placeholder="Meta description shown in search results"
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>KEYWORDS</div>
+                <input value={seoMetaForm.keywords} onChange={e => setSeoMetaForm(p => ({ ...p, keywords: e.target.value }))}
+                  placeholder="comma, separated, keywords"
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div>
+                  <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>OG IMAGE URL</div>
+                  <input value={seoMetaForm.og_image} onChange={e => setSeoMetaForm(p => ({ ...p, og_image: e.target.value }))}
+                    placeholder="https://..."
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>CANONICAL URL</div>
+                  <input value={seoMetaForm.canonical_url} onChange={e => setSeoMetaForm(p => ({ ...p, canonical_url: e.target.value }))}
+                    placeholder="https://..."
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, cursor: "pointer" }}>
+                <input type="checkbox" checked={seoMetaForm.no_index} onChange={e => setSeoMetaForm(p => ({ ...p, no_index: e.target.checked }))} />
+                <span style={{ color: "#ccc", fontSize: 13 }}>Hide from search engines (noindex)</span>
+              </label>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={handleSaveSeoMeta} disabled={seoMetaLoading}
+                  style={{ background: seoMetaLoading ? "#333" : "#E8192C", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 13, cursor: seoMetaLoading ? "not-allowed" : "pointer" }}>
+                  {seoMetaLoading ? "⏳ Saving..." : editSeoMetaId ? "💾 Update" : "🚀 Save Meta"}
+                </button>
+                {editSeoMetaId && (
+                  <button onClick={() => { setEditSeoMetaId(null); setSeoMetaForm({ ...emptySeoMeta }); }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 140px", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                {["Page", "Title", "Index", "Actions"].map(h => (
+                  <div key={h} style={{ color: "#555", fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{h}</div>
+                ))}
+              </div>
+              {seoMetaLoading ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>Loading...</div>
+              ) : seoMetaList.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>No page meta configured yet.</div>
+              ) : (
+                seoMetaList.map(m => (
+                  <div key={m.id} style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 140px", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center" }}>
+                    <div style={{ color: "#fff", fontSize: 13, fontFamily: "monospace" }}>{m.page_slug}</div>
+                    <div style={{ color: "#888", fontSize: 12 }}>{m.title || "—"}</div>
+                    <div>
+                      <span style={{ background: m.no_index ? "rgba(232,25,44,0.15)" : "rgba(16,185,129,0.15)", color: m.no_index ? "#E8192C" : "#10b981", padding: "3px 10px", borderRadius: 50, fontSize: 10, fontWeight: 700 }}>
+                        {m.no_index ? "NOINDEX" : "INDEX"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setSeoMetaForm({ ...m }); setEditSeoMetaId(m.id || null); }}
+                        style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Edit</button>
+                      <button onClick={() => setSeoMetaDeleteConfirm(m.id || null)}
+                        style={{ background: "rgba(232,25,44,0.08)", color: "#E8192C", border: "1px solid rgba(232,25,44,0.15)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Del</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= SEO: SITEMAP (informational) ================= */}
+        {activeTab === "seo-sitemap" && (
+          <div>
+            <h1 style={{ color: "#fff", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>Sitemap 🗺️</h1>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 24 }}>Auto-generated sitemap status</div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 28, maxWidth: 640 }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 17, marginBottom: 10 }}>Sitemap is generated automatically</div>
+              <div style={{ color: "#888", fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                <code style={{ color: "#E8192C" }}>app/sitemap.ts</code> builds <code style={{ color: "#E8192C" }}>/sitemap.xml</code> dynamically
+                from your live products and projects data on every request, so it always stays up to date — no manual step needed here.
+              </div>
+              <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "14px 18px" }}>
+                  <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>{products.length}</div>
+                  <div style={{ color: "#555", fontSize: 11 }}>Product URLs</div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "14px 18px" }}>
+                  <div style={{ color: "#E8192C", fontSize: 22, fontWeight: 900 }}>{projectsList.filter(p => p.status === "published").length || projectsList.length}</div>
+                  <div style={{ color: "#555", fontSize: 11 }}>Project URLs</div>
+                </div>
+              </div>
+              <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", background: "#E8192C", color: "#fff", padding: "12px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+                🔗 View sitemap.xml
+              </a>
+              <div style={{ color: "#555", fontSize: 12, marginTop: 16 }}>
+                Pages you set to <strong style={{ color: "#E8192C" }}>noindex</strong> under Meta Settings are automatically kept out of search
+                engine crawling via robots meta tags, even though they may still appear in this file.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= SEO: REDIRECTS ================= */}
+        {activeTab === "seo-redirects" && (
+          <div>
+            <h1 style={{ color: "#fff", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>Redirects 🔀</h1>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 24 }}>{redirectsList.length} redirects configured</div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 24, maxWidth: 640 }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
+                {editRedirectId ? "✏️ Edit Redirect" : "➕ Add Redirect"}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div>
+                  <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>SOURCE PATH *</div>
+                  <input value={redirectForm.source} onChange={e => setRedirectForm(p => ({ ...p, source: e.target.value }))}
+                    placeholder="/old-page"
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>DESTINATION PATH *</div>
+                  <input value={redirectForm.destination} onChange={e => setRedirectForm(p => ({ ...p, destination: e.target.value }))}
+                    placeholder="/new-page"
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, cursor: "pointer" }}>
+                <input type="checkbox" checked={redirectForm.permanent} onChange={e => setRedirectForm(p => ({ ...p, permanent: e.target.checked }))} />
+                <span style={{ color: "#ccc", fontSize: 13 }}>Permanent (301) — uncheck for temporary (302)</span>
+              </label>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={handleSaveRedirect} disabled={redirectsLoading}
+                  style={{ background: redirectsLoading ? "#333" : "#E8192C", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 13, cursor: redirectsLoading ? "not-allowed" : "pointer" }}>
+                  {redirectsLoading ? "⏳ Saving..." : editRedirectId ? "💾 Update" : "🚀 Add Redirect"}
+                </button>
+                {editRedirectId && (
+                  <button onClick={() => { setEditRedirectId(null); setRedirectForm({ ...emptyRedirect }); }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 140px", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                {["Source", "Destination", "Type", "Actions"].map(h => (
+                  <div key={h} style={{ color: "#555", fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{h}</div>
+                ))}
+              </div>
+              {redirectsLoading ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>Loading...</div>
+              ) : redirectsList.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>No redirects yet.</div>
+              ) : (
+                redirectsList.map(r => (
+                  <div key={r.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 140px", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center" }}>
+                    <div style={{ color: "#fff", fontSize: 13, fontFamily: "monospace" }}>{r.source}</div>
+                    <div style={{ color: "#888", fontSize: 13, fontFamily: "monospace" }}>→ {r.destination}</div>
+                    <div>
+                      <span style={{ background: r.permanent ? "rgba(59,130,246,0.15)" : "rgba(245,158,11,0.15)", color: r.permanent ? "#3b82f6" : "#f59e0b", padding: "3px 10px", borderRadius: 50, fontSize: 10, fontWeight: 700 }}>
+                        {r.permanent ? "301" : "302"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setRedirectForm({ ...r }); setEditRedirectId(r.id || null); }}
+                        style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Edit</button>
+                      <button onClick={() => setRedirectDeleteConfirm(r.id || null)}
+                        style={{ background: "rgba(232,25,44,0.08)", color: "#E8192C", border: "1px solid rgba(232,25,44,0.15)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Del</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ color: "#555", fontSize: 12, marginTop: 14, maxWidth: 640 }}>
+              Note: for these redirects to actually work in Next.js, your route handling (middleware or a lookup in <code style={{ color: "#E8192C" }}>next.config.js</code>) needs to read the <code style={{ color: "#E8192C" }}>seo_redirects</code> table. This screen manages the data — wiring it into routing is a one-time setup step.
+            </div>
+          </div>
+        )}
+
+        {/* ================= SEO: SCHEMA ================= */}
+        {activeTab === "seo-schema" && (
+          <div>
+            <h1 style={{ color: "#fff", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>Schema 🧩</h1>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 24 }}>{schemaList.length} structured data entries</div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 24, maxWidth: 640 }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
+                {editSchemaId ? "✏️ Edit Schema" : "➕ Add Schema (JSON-LD)"}
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>PAGE PATH *</div>
+                <input value={schemaForm.page_slug} onChange={e => setSchemaForm(p => ({ ...p, page_slug: e.target.value }))}
+                  placeholder="e.g. / or /product/some-slug"
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: 1, marginBottom: 6 }}>SCHEMA JSON (JSON-LD) *</div>
+                <textarea value={schemaForm.schema_json}
+                  onChange={e => { setSchemaForm(p => ({ ...p, schema_json: e.target.value })); setSchemaJsonError(null); }}
+                  rows={8}
+                  placeholder={'{\n  "@context": "https://schema.org",\n  "@type": "Organization",\n  "name": "VENUZEN"\n}'}
+                  style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: `1px solid ${schemaJsonError ? "#E8192C" : "rgba(255,255,255,0.08)"}`, color: "#fff", padding: "11px 14px", borderRadius: 8, fontSize: 13, fontFamily: "monospace", outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+                {schemaJsonError && <div style={{ color: "#E8192C", fontSize: 12, marginTop: 6 }}>❌ {schemaJsonError}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <button onClick={handleSaveSchema} disabled={schemaLoading}
+                  style={{ background: schemaLoading ? "#333" : "#E8192C", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "none", fontWeight: 700, fontSize: 13, cursor: schemaLoading ? "not-allowed" : "pointer" }}>
+                  {schemaLoading ? "⏳ Saving..." : editSchemaId ? "💾 Update" : "🚀 Save Schema"}
+                </button>
+                {editSchemaId && (
+                  <button onClick={() => { setEditSchemaId(null); setSchemaForm({ ...emptySchema }); setSchemaJsonError(null); }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px 22px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 140px", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                {["Page", "Schema Preview", "Actions"].map(h => (
+                  <div key={h} style={{ color: "#555", fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{h}</div>
+                ))}
+              </div>
+              {schemaLoading ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>Loading...</div>
+              ) : schemaList.length === 0 ? (
+                <div style={{ padding: 40, textAlign: "center", color: "#555" }}>No schema entries yet.</div>
+              ) : (
+                schemaList.map(s => (
+                  <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1fr 2fr 140px", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center" }}>
+                    <div style={{ color: "#fff", fontSize: 13, fontFamily: "monospace" }}>{s.page_slug}</div>
+                    <div style={{ color: "#888", fontSize: 11, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {s.schema_json.replace(/\s+/g, " ").slice(0, 80)}{s.schema_json.length > 80 ? "…" : ""}
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => { setSchemaForm({ ...s }); setEditSchemaId(s.id || null); setSchemaJsonError(null); }}
+                        style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Edit</button>
+                      <button onClick={() => setSchemaDeleteConfirm(s.id || null)}
+                        style={{ background: "rgba(232,25,44,0.08)", color: "#E8192C", border: "1px solid rgba(232,25,44,0.15)", padding: "6px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Del</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {!IMPLEMENTED_TABS.has(activeTab) && (
           <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 60, textAlign: "center" }}>
             <div style={{ fontSize: 50, marginBottom: 16 }}>🚧</div>
@@ -1317,6 +1800,48 @@ export default function AdminPage() {
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={() => handleDeleteClient(clientDeleteConfirm)} style={{ flex: 1, background: "#E8192C", color: "#fff", padding: "12px", borderRadius: 10, border: "none", fontWeight: 700, cursor: "pointer" }}>Delete</button>
               <button onClick={() => setClientDeleteConfirm(null)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seoMetaDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#111", border: "1px solid rgba(232,25,44,0.2)", borderRadius: 20, padding: 40, textAlign: "center", maxWidth: 380, width: "90%" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Delete Meta Entry?</div>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 32 }}>এটা ফিরিয়ে আনা যাবে না।</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => handleDeleteSeoMeta(seoMetaDeleteConfirm)} style={{ flex: 1, background: "#E8192C", color: "#fff", padding: "12px", borderRadius: 10, border: "none", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => setSeoMetaDeleteConfirm(null)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {redirectDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#111", border: "1px solid rgba(232,25,44,0.2)", borderRadius: 20, padding: 40, textAlign: "center", maxWidth: 380, width: "90%" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Delete Redirect?</div>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 32 }}>এটা ফিরিয়ে আনা যাবে না।</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => handleDeleteRedirect(redirectDeleteConfirm)} style={{ flex: 1, background: "#E8192C", color: "#fff", padding: "12px", borderRadius: 10, border: "none", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => setRedirectDeleteConfirm(null)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {schemaDeleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#111", border: "1px solid rgba(232,25,44,0.2)", borderRadius: 20, padding: 40, textAlign: "center", maxWidth: 380, width: "90%" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 20, marginBottom: 8 }}>Delete Schema?</div>
+            <div style={{ color: "#555", fontSize: 14, marginBottom: 32 }}>এটা ফিরিয়ে আনা যাবে না।</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => handleDeleteSchema(schemaDeleteConfirm)} style={{ flex: 1, background: "#E8192C", color: "#fff", padding: "12px", borderRadius: 10, border: "none", fontWeight: 700, cursor: "pointer" }}>Delete</button>
+              <button onClick={() => setSchemaDeleteConfirm(null)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "#fff", padding: "12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", fontWeight: 700, cursor: "pointer" }}>Cancel</button>
             </div>
           </div>
         </div>
