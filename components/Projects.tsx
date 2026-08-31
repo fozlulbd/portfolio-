@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
 type ProjectRow = {
@@ -224,7 +225,7 @@ export default function Projects() {
                 onMouseEnter={() => setHoveredId(p.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
-                  background: bgImage ? `${palette.bg} url(${bgImage}) center/cover no-repeat` : palette.bg,
+                  background: palette.bg,
                   borderRadius: 24,
                   overflow: "hidden",
                   cursor: "pointer",
@@ -241,7 +242,22 @@ export default function Projects() {
                   boxShadow: hoveredId === p.id ? `0 24px 60px rgba(0,0,0,0.5), 0 0 40px ${palette.accent}22` : "0 4px 20px rgba(0,0,0,0.3)",
                 }}>
 
-                <div style={{ position: "absolute", inset: 0, background: hoveredId === p.id ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.92) 100%)" : "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 35%, rgba(0,0,0,0.88) 100%)", transition: "all 0.4s" }} />
+                {/* Thumbnail — next/image lazy-loads and resizes this instead
+                    of the raw Supabase file being pulled in full via CSS
+                    background-image (that alone was ~1.4MB and was eating
+                    bandwidth the hero image needed during initial load). */}
+                {bgImage && (
+                  <Image
+                    src={bgImage}
+                    alt={p.title}
+                    fill
+                    loading={i < 2 ? "eager" : "lazy"}
+                    sizes="(max-width: 768px) 100vw, 400px"
+                    style={{ objectFit: "cover", zIndex: 0 }}
+                  />
+                )}
+
+                <div style={{ position: "absolute", inset: 0, zIndex: 0, background: hoveredId === p.id ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.92) 100%)" : "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 35%, rgba(0,0,0,0.88) 100%)", transition: "all 0.4s" }} />
 
                 {/* Top row: number badge + tag chips */}
                 <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
