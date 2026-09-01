@@ -22,7 +22,14 @@ export default function Hero() {
   const [roleIndex, setRoleIndex] = useState(0);
   const [displayed, setDisplayed] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [visible, setVisible] = useState(false);
+  // FIX: was `useState(false)` + a setTimeout(..., 100) to flip it true.
+  // That gated the hero heading and profile image (the LCP element) behind
+  // opacity:0 -> opacity:1 with a 1.2s transition, so Chrome couldn't count
+  // the content as "painted" until hydration + timeout + most of the
+  // transition had run. Starting at `true` means the hero renders fully
+  // visible on the very first paint (both SSR and client), which is what
+  // LCP actually measures. Secondary content still animates in fine.
+  const [visible, setVisible] = useState(true);
   const [jobsCount, setJobsCount] = useState(0);
   const [clientsCount, setClientsCount] = useState(0);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
@@ -50,11 +57,6 @@ export default function Hero() {
     }
     return () => clearTimeout(timeout);
   }, [displayed, isDeleting, roleIndex]);
-
-  // Fade in on mount
-  useEffect(() => {
-    setTimeout(() => setVisible(true), 100);
-  }, []);
 
   // Counter animation for stats
   useEffect(() => {
