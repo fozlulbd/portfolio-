@@ -98,12 +98,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Preload the Hero's LCP image so the browser starts fetching it
             immediately, without waiting for JS to parse/hydrate first. */}
+        {/* This now matches the raw file exactly because Hero.tsx's <Image>
+            uses `unoptimized` — see the Hero.tsx change below. */}
         <link
           rel="preload"
           as="image"
           href="/profile.jpg"
           fetchPriority="high"
         />
+        {/* If you keep next/image's optimizer instead of `unoptimized`,
+            delete this preload — it won't match the real request URL and
+            does nothing. */}
       </head>
       <body style={{ fontFamily: "var(--font-inter), sans-serif" }}>
         <JsonLd schemas={homeSchemas} />

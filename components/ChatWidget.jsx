@@ -81,6 +81,7 @@ function ContactButtons() {
 export default function ChatWidget({ pageSource = 'home' }) {
   const [open, setOpen] = useState(false)
   const [greeted, setGreeted] = useState(false)
+  const [showBadge, setShowBadge] = useState(false) // small notification dot instead of auto-opening the panel
   const [profile, setProfile] = useState(null) // { name, email }
   const [formStep, setFormStep] = useState(true) // show inline form until submitted
   const [form, setForm] = useState({ firstName: '', email: '', address: '', message: '' })
@@ -100,11 +101,13 @@ export default function ChatWidget({ pageSource = 'home' }) {
       setFormStep(false)
     }
 
-    // Auto-open with a greeting the first time a visitor lands (only if no profile yet)
+    // Don't auto-open the full chat panel — it was becoming the LCP element
+    // and tanking the performance score. Just surface a small badge on the
+    // launcher button after a delay; the panel only opens on user click.
     if (!savedProfile) {
       const timer = setTimeout(() => {
-        setOpen(true)
         setGreeted(true)
+        setShowBadge(true)
       }, 2500)
       return () => clearTimeout(timer)
     }
@@ -138,7 +141,10 @@ export default function ChatWidget({ pageSource = 'home' }) {
 
     const p = { name: form.firstName.trim(), email: form.email.trim() }
     const messageText = form.message.trim()
-    localStorage.setItem('sevenxp_chat_profile', JSON.stringify(p))
+    // FIX: this key previously didn't match the key read on load
+    // ('sevenxp_chat_profile' vs 'venuzen_chat_profile'), so returning
+    // visitors never got recognized and kept re-triggering the auto popup.
+    localStorage.setItem('venuzen_chat_profile', JSON.stringify(p))
 
     const device = detectDevice()
     const location = await detectLocation()
@@ -225,6 +231,11 @@ export default function ChatWidget({ pageSource = 'home' }) {
       <img src="/chatbot-avatar.webp" alt="Zara" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     </div>
   )
+
+  const openWidget = () => {
+    setOpen(true)
+    setShowBadge(false)
+  }
 
   return (
     <div
@@ -359,12 +370,20 @@ export default function ChatWidget({ pageSource = 'home' }) {
           )}
         </div>
       ) : (
-        <button onClick={() => setOpen(true)} style={{
+        <button onClick={openWidget} style={{
+          position: 'relative',
           width: isMobile ? 54 : 62, height: isMobile ? 54 : 62, borderRadius: '50%', border: '3px solid #d32f2f',
           cursor: 'pointer', boxShadow: '0 4px 20px rgba(211,47,47,0.6)',
           overflow: 'hidden', padding: 0, background: '#161616'
         }}>
           <img src="/chatbot-avatar.webp" alt="Chat with Zara" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {showBadge && (
+            <span style={{
+              position: 'absolute', top: 0, right: 0,
+              width: 14, height: 14, borderRadius: '50%',
+              background: '#25D366', border: '2px solid #161616',
+            }} />
+          )}
         </button>
       )}
     </div>
