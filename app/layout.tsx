@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { getSeoSchema } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 
 const siteUrl = "https://venuzen.com";
+
+// next/font self-hosts the font at build time (no external Google Fonts
+// request), inlines the @font-face, and avoids render-blocking network
+// calls. This alone usually saves 200-400ms off FCP.
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -80,19 +91,21 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Whatever JSON-LD schema you save under page path "/" in the admin
-  // Schema tab (e.g. Organization schema) gets fetched here and rendered
-  // on every page, since it lives in the root layout.
   const homeSchemas = await getSeoSchema("/");
 
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        {/* Preload the Hero's LCP image so the browser starts fetching it
+            immediately, without waiting for JS to parse/hydrate first. */}
+        <link
+          rel="preload"
+          as="image"
+          href="/profile.jpg"
+          fetchPriority="high"
+        />
       </head>
-      <body style={{ fontFamily: "'Inter', sans-serif" }}>
+      <body style={{ fontFamily: "var(--font-inter), sans-serif" }}>
         <JsonLd schemas={homeSchemas} />
         <Navbar />
         {children}

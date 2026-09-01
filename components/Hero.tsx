@@ -106,9 +106,16 @@ export default function Hero() {
     let cleanupResize: () => void = () => {};
 
     const start = () => {
+      // Batch the read (offsetWidth/offsetHeight) and the write
+      // (canvas.width/height) inside a single rAF so the browser doesn't
+      // have to perform a synchronous forced layout on every resize event.
       const resize = () => {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        requestAnimationFrame(() => {
+          const w = canvas.offsetWidth;
+          const h = canvas.offsetHeight;
+          canvas.width = w;
+          canvas.height = h;
+        });
       };
       resize();
       window.addEventListener("resize", resize);
@@ -509,7 +516,11 @@ export default function Hero() {
 
             {/* Glassmorphism profile card — aspect-ratio keeps it proportional
                 at any width instead of a fixed height, so it never looks
-                stretched on narrow screens */}
+                stretched on narrow screens.
+                Note: backdropFilter was removed here — the card is fully
+                covered by the profile image (fill), so blurring what's
+                behind it was wasted GPU work sitting directly on the
+                LCP critical path. */}
             <div
               style={{
                 width: "100%",
@@ -522,19 +533,22 @@ export default function Hero() {
                 zIndex: 1,
                 animation: "float 5s ease-in-out infinite",
                 boxShadow: "0 40px 100px rgba(0,0,0,0.7), 0 0 60px rgba(232,25,44,0.15), inset 0 0 40px rgba(255,255,255,0.03)",
-                backdropFilter: "blur(20px)",
               }}
             >
               {/* next/image: automatically serves a resized, compressed
                   WebP/AVIF version and preloads it (priority) instead of the
                   raw 260KB jpg — this is the LCP element on this page, so
-                  this single change is what moves the mobile score most. */}
+                  this single change is what moves the mobile score most.
+                  quality is capped at 80 (next default is 75, but this project
+                  looked like it wasn't set — 80 keeps the image crisp while
+                  trimming a few more KB off the encoded output). */}
               <Image
                 src="/profile.jpg"
                 alt="FozlulHoque"
                 fill
                 priority
                 fetchPriority="high"
+                quality={80}
                 sizes="(max-width: 768px) 78vw, 560px"
                 style={{ objectFit: "cover", objectPosition: "top center" }}
               />
