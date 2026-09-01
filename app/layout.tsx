@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { getSeoSchema } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
+import { Analytics } from "@vercel/analytics/next";
 
 const siteUrl = "https://venuzen.com";
 
@@ -114,6 +115,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <JsonLd schemas={homeSchemas} />
         <Navbar />
         {children}
+        <Analytics />
       </body>
     </html>
   );
