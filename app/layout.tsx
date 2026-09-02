@@ -96,19 +96,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={inter.variable}>
       <head>
-        {/* Preload the Hero's LCP image so the browser starts fetching it
-            immediately, without waiting for JS to parse/hydrate first. */}
-        {/* This now matches the raw file exactly because Hero.tsx's <Image>
-            uses `unoptimized` — see the Hero.tsx change below. */}
-        <link
-          rel="preload"
-          as="image"
-          href="/profile.jpg"
-          fetchPriority="high"
-        />
-        {/* If you keep next/image's optimizer instead of `unoptimized`,
-            delete this preload — it won't match the real request URL and
-            does nothing. */}
+        {/* NOTE: the old manual preload for /profile.jpg was removed.
+            Hero.tsx's <Image> uses next/image's normal optimizer (not
+            `unoptimized`), so the real request goes to
+            /_next/image?url=%2Fprofile.jpg&... — not the raw /profile.jpg
+            path. The old preload was fetching a URL nothing on the page
+            actually used, wasting bandwidth and competing with the real
+            image request on the LCP-critical path.
+            next/image already inserts the correct preload <link> for us
+            automatically because Hero.tsx sets `priority` on that image —
+            no manual tag needed. */}
+
+        {/* Preconnect to Supabase so the DNS lookup + TLS handshake happen
+            during initial page load instead of when the chat widget / Hero
+            stats first call the API — PageSpeed flagged this as an
+            ~300ms LCP saving ("Preconnect candidates"). */}
+        <link rel="preconnect" href="https://prycvptyrzqzyuthsejh.supabase.co" />
+        <link rel="dns-prefetch" href="https://prycvptyrzqzyuthsejh.supabase.co" />
       </head>
       <body style={{ fontFamily: "var(--font-inter), sans-serif" }}>
         <JsonLd schemas={homeSchemas} />
